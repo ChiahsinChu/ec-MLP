@@ -1,12 +1,10 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 import numpy as np
-import torch
-from deepmd.pt.utils.utils import to_numpy_array
+from deepmd.pt.utils.utils import to_numpy_array, to_torch_tensor
 from deepmd.tf.common import select_idx_map
 from deepmd.tf.modifier.base_modifier import BaseModifier
 from deepmd.tf.modifier.dipole_charge import DipoleChargeModifier
 from deepmd.tf.utils.data import DeepmdData
-from deepmd.tf.utils.utils import to_torch_tensor
 
 from torch_admp.electrode import (
     LAMMPSElectrodeConstraint,
