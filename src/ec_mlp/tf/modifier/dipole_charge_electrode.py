@@ -73,16 +73,13 @@ class DipoleChargeElectrodeModifier(DipoleChargeModifier):
             box = box.reshape(3, 3)
             box[self.calculator.slab_axis, self.calculator.slab_axis] *= 3.0
 
-        t_positions = torch.tensor(positions.reshape(-1, 3), requires_grad=True)
-        t_box = torch.tensor(box.reshape(3, 3), requires_grad=True)
-        t_charges = torch.tensor(charges.reshape(-1))
-
-        pairs, ds, buffer_scales = vesin_nblist(t_positions, t_box, self.rcut)
-        # pairs, ds, buffer_scales = dp_nblist(t_positions, t_box, self.nnei, self.rcut)
+        natoms = positions.reshape(-1, 3).shape[0]
 
         # mask, eta, chi, hardness, constraint_matrix, constraint_vals, ffield_electrode_mask, ffield_potential
+        # setup_from_lammps creates tensors on torch_admp's env.DEVICE (may be CUDA),
+        # so we must ensure all other tensors are on the same device.
         input_data = setup_from_lammps(
-            t_positions.shape[0],
+            natoms,
             [
                 LAMMPSElectrodeConstraint(
                     indices=np.where(np.abs(charges.reshape(-1)) < 1e-5)[0],
@@ -93,6 +90,23 @@ class DipoleChargeElectrodeModifier(DipoleChargeModifier):
             ],
             symm=False,
         )
+        device = input_data[0].device
+
+        # Move calculator modules to the target device (no-op if already there)
+        self.calculator.to(device)
+        self.er.to(device)
+
+        t_positions = torch.as_tensor(
+            positions.reshape(-1, 3), device=device
+        ).requires_grad_(True)
+        t_box = torch.as_tensor(
+            box.reshape(3, 3), device=device
+        ).requires_grad_(True)
+        t_charges = torch.as_tensor(charges.reshape(-1), device=device)
+
+        pairs, ds, buffer_scales = vesin_nblist(t_positions, t_box, self.rcut)
+        # pairs, ds, buffer_scales = dp_nblist(t_positions, t_box, self.nnei, self.rcut)
+
         _q_opt, _efield = charge_optimization(
             self.calculator,
             t_positions,
