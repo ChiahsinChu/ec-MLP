@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 import numpy as np
-import torch
-from deepmd.pt.utils.utils import to_numpy_array
+from deepmd.pt.utils.utils import to_numpy_array, to_torch_tensor
 from deepmd.tf.common import select_idx_map
 from deepmd.tf.modifier.base_modifier import BaseModifier
 from deepmd.tf.modifier.dipole_charge import DipoleChargeModifier
@@ -73,9 +72,11 @@ class DipoleChargeElectrodeModifier(DipoleChargeModifier):
             box = box.reshape(3, 3)
             box[self.calculator.slab_axis, self.calculator.slab_axis] *= 3.0
 
-        t_positions = torch.tensor(positions.reshape(-1, 3), requires_grad=True)
-        t_box = torch.tensor(box.reshape(3, 3), requires_grad=True)
-        t_charges = torch.tensor(charges.reshape(-1))
+        t_positions = to_torch_tensor(positions.reshape(-1, 3))
+        t_positions.requires_grad_(True)
+        t_box = to_torch_tensor(box.reshape(3, 3))
+        t_box.requires_grad_(True)
+        t_charges = to_torch_tensor(charges.reshape(-1))
 
         pairs, ds, buffer_scales = vesin_nblist(t_positions, t_box, self.rcut)
         # pairs, ds, buffer_scales = dp_nblist(t_positions, t_box, self.nnei, self.rcut)
