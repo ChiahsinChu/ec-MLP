@@ -513,13 +513,12 @@ void VerletSplitKSpace::rk_setup()
     atom->nghost = 0;
   }*/
 
-  // ARCHIVED: one-time scatter of Rspace atom charges to Kspace proc.
-  // int n;
-  // n = atom->nlocal;
-  // MPI_Scatterv(master ? atom->q : nullptr, qsize, qdisp, MPI_DOUBLE,
-  //              atom->q, n, MPI_DOUBLE, 0, block);
-  // Disabled because electrode fixes may update atom->q every PRE_FORCE;
-  // transferring only at reneighbouring leaves K-space PPPM with stale charges.
+  // Initialize K-space q before its first setup/thermo evaluation.  This also
+  // provides a valid state after reneighboring; r2k_comm() refreshes it again
+  // after every subsequent PRE_FORCE charge update.
+  int n = atom->nlocal;
+  MPI_Scatterv(master ? atom->q : nullptr, qsize, qdisp, MPI_DOUBLE,
+              atom->q, n, MPI_DOUBLE, 0, block);
 
 }
 
