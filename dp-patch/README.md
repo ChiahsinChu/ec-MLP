@@ -1,53 +1,69 @@
 # deepmd-kit patches for `fix dplr`
 
-ec-MLP's LAMMPS plugin does not build against a stock deepmd-kit. Both patches
-here apply to `source/lmp/fix_dplr.cpp` and must be applied to the deepmd-kit
-source tree *before* deepmd-kit is compiled.
+Patches against deepmd-kit's `source/lmp/fix_dplr.cpp`, to be applied to the
+deepmd-kit source tree *before* deepmd-kit is compiled.
 
-## The patches
+They are not interchangeable and they are not both required. Start with
+`202506-fix_dplr.patch`; you only need `202404-fix_dplr_a0.patch` if you are
+testing the ELECTRODE work.
 
-### `0001-make-fele-public-and-can-be-modified-by-external-mod.patch`
+## `202506-fix_dplr.patch` — mandatory
 
-Promotes `dfele` from a `post_force()` local to a public `FixDPLR` member, and
-re-zeroes it at the end of `pre_force()`.
+**If you want to use `verlet/split` with the official DPLR (no ELECTRODE yet),
+this patch is mandatory.** It is the only one that path needs.
 
-**Required to build.** `src/lmp/verlet_split_dplr.cpp` hands the k-space forces to
-`fix dplr` by writing `fix_dplr->dfele[...]` directly; without this patch that
-member does not exist and the plugin does not compile.
-
-### `0001-fix-lmp-place-Wannier-centroids-in-setup_post_neighb.patch`
-
-Moves the setup-time Wannier-centroid placement out of `setup_pre_force()` and to
-the end of `setup_post_neighbor()`, and adds `MIN_POST_NEIGHBOR` to the fix mask.
-
-LAMMPS runs every fix's `setup_post_neighbor()` before any `setup_pre_force()`, so
-a fix that reads `atom->x` while setting itself up used to see the centroids still
-collapsed onto their host atoms — `fix electrode/conp` builds its elastance matrix
-in exactly that hook. Placing the centroids in `setup_post_neighbor()` fixes that.
-
-Two consequences:
-
-- **`fix dplr` must be defined before any fix that depends on the centroid
-  positions.** Fixes run in definition order.
-- `Modify::setup_post_neighbor()` dispatches on `MIN_POST_NEIGHBOR` when
-  `whichflag == 2`, so `minimize` previously got no centroid placement at all (and
-  no restart collapse either). Setting both mask bits repairs that path.
-
-## Applying them
+It promotes `dfele` from a local of `FixDPLR::post_force()` to a public member,
+re-zeroed at the end of `pre_force()`. `verlet/split/dplr` computes the k-space
+part of the force on a separate partition and has to hand the result back to
+`fix dplr`; `src/lmp/verlet_split_dplr.cpp` does that by writing
+`fix_dplr->dfele[...]` directly. Against an unpatched deepmd-kit that member is
+private, and the ec-MLP LAMMPS plugin does not compile.
 
 ```bash
 git clone -b v3.1.3 https://github.com/deepmodeling/deepmd-kit.git
 cd deepmd-kit
-git am -3 /path/to/ec-MLP/dp-patch/*.patch
+git am -3 /path/to/ec-MLP/dp-patch/202506-fix_dplr.patch
+```
+
+## `202404-fix_dplr_a0.patch` — testing only, for now
+
+**Not needed for the `verlet/split` path above.** This one is for testing: it is
+the base of the ELECTRODE-support work, and the patches derived from it that
+actually add that support will be added here later.
+
+It moves the setup-time Wannier-centroid placement out of `setup_pre_force()` and
+to the end of `setup_post_neighbor()`, and adds `MIN_POST_NEIGHBOR` to the fix
+mask.
+
+`fix dplr` writes the Wannier-centroid coordinates into `atom->x` from
+`pre_force()`. During setup that used to happen in `setup_pre_force()`, which
+LAMMPS calls only after *every* fix has already run its `setup_post_neighbor()` —
+so a fix that reads `atom->x` while setting itself up saw the centroids still
+collapsed onto their host atoms. `fix electrode/conp` builds its elastance matrix
+in exactly that hook, which is why this is the groundwork for ELECTRODE support.
+
+Two consequences of the move:
+
+- **`fix dplr` must be defined before any fix that depends on the centroid
+  positions.** Fixes run in definition order.
+- `Modify::setup_post_neighbor()` dispatches on `MIN_POST_NEIGHBOR` when
+  `whichflag == 2`, so `POST_NEIGHBOR` alone left `minimize` with no centroid
+  placement at all — and, already before this patch, with no restart collapse
+  either. Setting both mask bits repairs that path.
+
+Apply it on top of the mandatory patch if you want to exercise this:
+
+```bash
+git am -3 /path/to/ec-MLP/dp-patch/202404-fix_dplr_a0.patch
 ```
 
 The two patches touch disjoint parts of `fix_dplr.cpp`, so the order does not
-matter. Use `git apply --3way` instead of `git am -3` if you would rather not
-create commits.
+matter. Use `git apply --3way` instead of `git am -3` to apply them without
+creating commits.
 
 ## Compatibility
 
 Both patches apply cleanly to deepmd-kit **v3.0.0 through v3.2.0** and are
-behaviour-preserving for a plain `run` on every one of them, at 1 and 4 MPI ranks.
-See [`regression/`](./regression/) for the full record and for what it does not
-cover.
+behaviour-preserving for a plain `run` on every one of them, at 1 and 4 MPI ranks
+— each on its own, and both together. See [`regression/`](./regression/) for the
+full record and for what it does not cover.

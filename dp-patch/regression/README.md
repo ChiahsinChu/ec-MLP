@@ -25,11 +25,11 @@ unchanged.
 
 ## The patches under test
 
-- **p1** `0001-fix-lmp-place-Wannier-centroids-in-setup_post_neighb.patch` — moves
-  setup-time Wannier-centroid placement from `setup_pre_force()` to the end of
-  `setup_post_neighbor()`, and adds `MIN_POST_NEIGHBOR` to the fix mask.
-- **p2** `0001-make-fele-public-and-can-be-modified-by-external-mod.patch` — promotes
-  `dfele` to a public `FixDPLR` member, re-zeroed at the end of `pre_force()`.
+- **p1** `202404-fix_dplr_a0.patch` — moves setup-time Wannier-centroid placement
+  from `setup_pre_force()` to the end of `setup_post_neighbor()`, and adds
+  `MIN_POST_NEIGHBOR` to the fix mask.
+- **p2** `202506-fix_dplr.patch` — promotes `dfele` to a public `FixDPLR` member,
+  re-zeroed at the end of `pre_force()`.
 
 `test/` has **both** applied. They were also verified individually; each alone
 matched `ref` on every version too.
