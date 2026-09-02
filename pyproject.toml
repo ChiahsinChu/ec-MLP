@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-torch_admp = ["torch_admp[all]>=1.1.5, <2.0", "vesin-torch"]
+torch_admp = ["torch_admp[all]>=1.1.5, <2.0", "vesin[torch]"]
 test = [
     "pytest",
     "pytest-cov",

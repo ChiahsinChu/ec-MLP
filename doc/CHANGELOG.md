@@ -1,5 +1,27 @@
 # ec-MLP CHANGELOG
 
+## Unreleased
+
+### deepmd-kit patches
+
+- Vendored the two `fix dplr` patches into `dp-patch/`, replacing the `wget` of a
+  personal fork's pull request in the installation instructions.
+  - `202506-fix_dplr.patch` — makes `FixDPLR::dfele` public. **Mandatory** for
+    `verlet/split` with the official DPLR: `src/lmp/verlet_split_dplr.cpp` writes to
+    it, and without the patch the plugin does not compile.
+  - `202404-fix_dplr_a0.patch` — places the Wannier centroids in
+    `setup_post_neighbor()` instead of `setup_pre_force()`, so a fix defined after
+    `fix dplr` (such as `fix electrode/conp`) sees the real centroid positions while
+    it sets itself up. Also adds `MIN_POST_NEIGHBOR` to the fix mask, which
+    `minimize` needs. Not required for the `verlet/split` path — it is for testing,
+    and the patches derived from it that add ELECTRODE support will follow later.
+- Added `dp-patch/regression/`: unpatched-vs-patched trajectories and thermo logs for
+  deepmd-kit v3.0.0 - v3.2.0 at 1 and 4 MPI ranks, all matching, with
+  `compare_regression.py` to check them.
+- Documented both in `doc/src/lmp/dp_patch.md`.
+
+---
+
 ## v1.0.1 (2025-11-25)
 
 ### Recent Changes

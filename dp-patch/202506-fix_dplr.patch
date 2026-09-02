@@ -1,0 +1,52 @@
+From 157657f6cd100b36d4f5ee28dbb92fb455301cfc Mon Sep 17 00:00:00 2001
+From: Jia-Xin Zhu <jiaxinzhu@stu.xmu.edu.cn>
+Date: Tue, 10 Jun 2025 13:01:53 +0800
+Subject: [PATCH] make fele public and can be modified by external modules
+
+---
+ source/lmp/fix_dplr.cpp | 9 +++++++--
+ source/lmp/fix_dplr.h   | 1 +
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/source/lmp/fix_dplr.cpp b/source/lmp/fix_dplr.cpp
+index ac161730..00758471 100644
+--- a/source/lmp/fix_dplr.cpp
++++ b/source/lmp/fix_dplr.cpp
+@@ -588,6 +588,12 @@ void FixDPLR::pre_force(int vflag) {
+   //   }
+   //   cout << endl;
+   // }
++
++  // re-init dfele
++  dfele.resize(nlocal * 3);
++  for (int ii = 0; ii < nlocal * 3; ++ii) {
++    dfele[ii] = 0.0;
++  }
+ }
+ 
+ /* ---------------------------------------------------------------------- */
+@@ -611,8 +617,7 @@ void FixDPLR::post_force(int vflag) {
+   int nlocal = atom->nlocal;
+   int nghost = atom->nghost;
+   int nall = nlocal + nghost;
+-  vector<FLOAT_PREC> dcoord(nall * 3, 0.0), dbox(9, 0.0),
+-      dfele(nlocal * 3, 0.0);
++  vector<FLOAT_PREC> dcoord(nall * 3, 0.0), dbox(9, 0.0);
+   vector<int> dtype(nall, 0);
+   // set values for dcoord, dbox, dfele
+   {
+diff --git a/source/lmp/fix_dplr.h b/source/lmp/fix_dplr.h
+index 5f1161fd..a9663549 100644
+--- a/source/lmp/fix_dplr.h
++++ b/source/lmp/fix_dplr.h
+@@ -57,6 +57,7 @@ class FixDPLR : public Fix {
+   double compute_scalar(void) override;
+   double compute_vector(int) override;
+   double ener_unit_cvt_factor, dist_unit_cvt_factor, force_unit_cvt_factor;
++  std::vector<double> dfele;
+ 
+  private:
+   PairDeepMD *pair_deepmd;
+-- 
+2.52.0
+
