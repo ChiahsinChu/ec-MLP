@@ -30,7 +30,7 @@ applied to the source code of deepmd-kit before it is built:
 
 ```bash
 # get deepmd-kit source code
-git clone -b v3.1.3 https://github.com/deepmodeling/deepmd-kit.git
+git clone -b v3.1.1 https://github.com/deepmodeling/deepmd-kit.git
 cd deepmd-kit
 # add patch for fix dplr
 git am -3 /path/to/ec-MLP/dp-patch/202506-fix_dplr.patch

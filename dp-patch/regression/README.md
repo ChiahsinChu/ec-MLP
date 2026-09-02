@@ -86,6 +86,12 @@ is parsed for its thermo table and compared number-by-number (the raw log carrie
 timings and dates, so it cannot be byte-compared). A mismatch prints the column,
 the largest absolute and relative deviation, and the step it occurred at.
 
+Structural problems are reported as differences rather than passed over: a missing
+`dump.lammpstrj` or `log.lammps`, a row narrower than its header or than its
+counterpart, and any non-finite value facing a finite one. Each of those would
+otherwise read as a match — a `nan` energy in particular compares false against
+everything, so it would never register as the largest deviation.
+
 ## How it was produced
 
 Per version: a detached `git worktree` at the branch tip, its own env with that

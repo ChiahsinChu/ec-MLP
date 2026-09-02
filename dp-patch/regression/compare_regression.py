@@ -30,6 +30,7 @@ directories found. Stdlib only.
 from __future__ import annotations
 
 import hashlib
+import math
 import pathlib
 import re
 import sys
@@ -127,7 +128,17 @@ def compare_dump(ref: pathlib.Path, test: pathlib.Path) -> dict:
         A, B = fa[ts], fb[ts]
         if sorted(A) != sorted(B):
             return {"status": "DIFF", "reason": f"atom ids differ at step {ts}"}
+        want = len(ca) - 1  # ca[0] is "id", which keys the row, not part of it
         for aid in A:
+            # zip() below would silently stop at the shorter row, so a truncated
+            # line -- an interrupted write, a half-flushed dump -- would compare
+            # equal on the columns that survived. Check the widths first.
+            if len(A[aid]) != len(B[aid]) or len(A[aid]) != want:
+                return {
+                    "status": "DIFF",
+                    "reason": f"row width {len(A[aid])} vs {len(B[aid])} "
+                    f"(expected {want}) at step {ts}, id {aid}",
+                }
             for i, (x, y) in enumerate(zip(A[aid], B[aid])):
                 name = ca[i + 1]
                 if name == "element":
@@ -140,6 +151,15 @@ def compare_dump(ref: pathlib.Path, test: pathlib.Path) -> dict:
                 if x == y:
                     continue
                 d, r = _dev(x, y)
+                # nan compares false against everything, so "d > worst" would drop
+                # a finite-versus-nan pair and report EQUAL -- exactly the case
+                # where a run blew up and the comparison matters most.
+                if not math.isfinite(d):
+                    return {
+                        "status": "DIFF",
+                        "reason": f"non-finite {name} {x} vs {y}"
+                        f" at step {ts}, id {aid}",
+                    }
                 if d > worst.get(name, (0.0,))[0]:
                     worst[name] = (d, r, ts, aid)
     if not worst:
@@ -155,12 +175,25 @@ def compare_thermo(ref: pathlib.Path, test: pathlib.Path) -> dict:
     if len(ra) != len(rb):
         return {"status": "DIFF", "reason": f"{len(ra)} vs {len(rb)} rows"}
     worst: dict[str, tuple] = {}
+    want = len(ha) if ha else None
     for rowa, rowb in zip(ra, rb):
+        # As in compare_dump: zip() would hide a short row instead of failing on it.
+        if len(rowa) != len(rowb) or (want is not None and len(rowa) != want):
+            return {
+                "status": "DIFF",
+                "reason": f"row width {len(rowa)} vs {len(rowb)} "
+                f"(expected {want}) at step {rowa[0]}",
+            }
         for i, (x, y) in enumerate(zip(rowa, rowb)):
             if x == y:
                 continue
             d, r = _dev(x, y)
             name = ha[i] if ha and i < len(ha) else f"col{i}"
+            if not math.isfinite(d):
+                return {
+                    "status": "DIFF",
+                    "reason": f"non-finite {name} {x} vs {y} at step {rowa[0]}",
+                }
             if d > worst.get(name, (0.0,))[0]:
                 worst[name] = (d, r, rowa[0], None)
     if not worst:
@@ -194,6 +227,19 @@ def compare_case(version_dir: pathlib.Path, np: str) -> dict | None:
     ref, test = version_dir / "ref" / np, version_dir / "test" / np
     if not ref.is_dir() or not test.is_dir():
         return None
+    # Report an incomplete record as a difference rather than letting the open()
+    # below raise: a missing output is a failed run, not a crash of the checker.
+    missing = [
+        str((d / name).relative_to(HERE))
+        for d in (ref, test)
+        for name in ("dump.lammpstrj", "log.lammps")
+        if not (d / name).is_file()
+    ]
+    if missing:
+        return {
+            "files": {"status": "DIFF", "reason": f"missing {', '.join(missing)}"},
+            "verdict": "DIFF",
+        }
     out = {
         "dump": compare_dump(ref / "dump.lammpstrj", test / "dump.lammpstrj"),
         "thermo": compare_thermo(ref / "log.lammps", test / "log.lammps"),
@@ -244,7 +290,7 @@ def main(argv: list[str]) -> int:
             if r["verdict"] == "DIFF":
                 failures += 1
                 bits = []
-                for what in ("dump", "thermo"):
+                for what in ("files", "dump", "thermo"):
                     rr = r.get(what, {})
                     if rr.get("status") != "DIFF":
                         continue

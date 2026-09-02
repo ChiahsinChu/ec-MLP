@@ -20,7 +20,7 @@ part of the force on a separate partition and has to hand the result back to
 private, and the ec-MLP LAMMPS plugin does not compile.
 
 ```bash
-git clone -b v3.1.3 https://github.com/deepmodeling/deepmd-kit.git
+git clone -b v3.1.1 https://github.com/deepmodeling/deepmd-kit.git
 cd deepmd-kit
 git am -3 /path/to/ec-MLP/dp-patch/202506-fix_dplr.patch
 ```
@@ -67,3 +67,7 @@ Both patches apply cleanly to deepmd-kit **v3.0.0 through v3.2.0** and are
 behaviour-preserving for a plain `run` on every one of them, at 1 and 4 MPI ranks
 — each on its own, and both together. See [`regression/`](./regression/) for the
 full record and for what it does not cover.
+
+That range is about the patches. The ec-MLP plugin itself is supported on
+deepmd-kit v3.1.1, which is why the commands above clone that tag; see
+[Version compatibility](../README.md#version-compatibility).

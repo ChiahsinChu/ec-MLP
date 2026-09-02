@@ -32,7 +32,7 @@ private and the plugin does not compile.
 
 ```bash
 # get deepmd-kit source code
-git clone -b v3.1.3 https://github.com/deepmodeling/deepmd-kit.git
+git clone -b v3.1.1 https://github.com/deepmodeling/deepmd-kit.git
 cd deepmd-kit
 # apply the mandatory patch
 git am -3 /path/to/ec-MLP/dp-patch/202506-fix_dplr.patch
@@ -88,7 +88,8 @@ creating commits.
 
 Both patches apply cleanly to deepmd-kit v3.0.0 through v3.2.0 and leave a plain
 `run` bit-for-bit unchanged on every one of them — each patch on its own, and both
-together. The case is 512 waters (2048 atoms, 512 O–X bonds) under `pair_style
+together. That range describes the patches; the plugin itself is supported on
+v3.1.1, which is the tag cloned above. The case is 512 waters (2048 atoms, 512 O–X bonds) under `pair_style
 deepmd` + `kspace_style pppm/dplr` + `fix dplr`, 100 NVT steps at 300 K, compared
 unpatched (`ref`) against patched (`test`) at 1 and 4 MPI ranks:
 
