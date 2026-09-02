@@ -101,7 +101,7 @@ def parse_thermo(path: pathlib.Path):
                 try:
                     [float(x) for x in f]
                 except ValueError:
-                    continue          # warnings interleaved in the table
+                    continue  # warnings interleaved in the table
                 rows.append(f)
     return header, rows
 
@@ -132,7 +132,10 @@ def compare_dump(ref: pathlib.Path, test: pathlib.Path) -> dict:
                 name = ca[i + 1]
                 if name == "element":
                     if x != y:
-                        return {"status": "DIFF", "reason": f"element differs, id {aid}"}
+                        return {
+                            "status": "DIFF",
+                            "reason": f"element differs, id {aid}",
+                        }
                     continue
                 if x == y:
                     continue
@@ -196,8 +199,9 @@ def compare_case(version_dir: pathlib.Path, np: str) -> dict | None:
         "thermo": compare_thermo(ref / "log.lammps", test / "log.lammps"),
     }
     rank = {"IDENTICAL": 0, "EQUAL": 1, "DIFF": 2}
-    out["verdict"] = max((v["status"] for v in out.values()),
-                         key=lambda s: rank.get(s, 9))
+    out["verdict"] = max(
+        (v["status"] for v in out.values()), key=lambda s: rank.get(s, 9)
+    )
     return out
 
 
@@ -222,8 +226,14 @@ def main(argv: list[str]) -> int:
     print("-" * 72)
     failures = 0
     for vdir in versions:
-        nps = sorted({p.name for side in ("ref", "test")
-                      for p in (vdir / side).iterdir() if p.is_dir()})
+        nps = sorted(
+            {
+                p.name
+                for side in ("ref", "test")
+                for p in (vdir / side).iterdir()
+                if p.is_dir()
+            }
+        )
         for np in nps:
             r = compare_case(vdir, np)
             if r is None:
@@ -241,9 +251,12 @@ def main(argv: list[str]) -> int:
                     if "reason" in rr:
                         bits.append(f"{what}: {rr['reason']}")
                     else:
-                        col, (d, rel, step, _) = max(rr["worst"].items(),
-                                                     key=lambda kv: kv[1][0])
-                        bits.append(f"{what} {col}: max|d|={d:.3e} rel={rel:.2e} @step {step}")
+                        col, (d, rel, step, _) = max(
+                            rr["worst"].items(), key=lambda kv: kv[1][0]
+                        )
+                        bits.append(
+                            f"{what} {col}: max|d|={d:.3e} rel={rel:.2e} @step {step}"
+                        )
                 detail = "; ".join(bits)
             print(f"{vdir.name:10} {np:6} {r['verdict']:10} {detail}")
     print("-" * 72)

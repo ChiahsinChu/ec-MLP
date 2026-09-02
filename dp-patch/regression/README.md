@@ -10,14 +10,14 @@ for a plain `run`, on every deepmd-kit v3 branch, at 1 and 4 MPI ranks.
 
 Every version matches. `test` reproduces `ref` exactly, at both rank counts.
 
-| version | commit | np=1 | np=4 |
-| --- | --- | --- | --- |
-| v3.0.0 | `e695a91c` | match | match |
-| v3.1.0 | `b494a0d5` | match | match |
-| v3.1.1 | `bfa62458` | match | match |
-| v3.1.2 | `d798b33a` | match | match |
-| v3.1.3 | `b2c8511e` | match | match |
-| v3.2.0 | `8cfd46e3` | match | match |
+| version | commit     | np=1  | np=4  |
+| ------- | ---------- | ----- | ----- |
+| v3.0.0  | `e695a91c` | match | match |
+| v3.1.0  | `b494a0d5` | match | match |
+| v3.1.1  | `bfa62458` | match | match |
+| v3.1.2  | `d798b33a` | match | match |
+| v3.1.3  | `b2c8511e` | match | match |
+| v3.2.0  | `8cfd46e3` | match | match |
 
 All 24 trajectories here share one md5 (`a1605aa87d20c4e48340589392ba7029`) and one
 thermo table — the patches, the branch and the rank count all leave the result
@@ -65,14 +65,14 @@ compare_regression.py
 
 All 24 runs were driven by the same input deck and the same geometry, so those two
 files are stored once under `case/` instead of in every leaf; their md5s are the
-ones listed above and are pinned in `compare_regression.py`. The outputs are *not*
+ones listed above and are pinned in `compare_regression.py`. The outputs are _not_
 deduplicated — the 24 `dump.lammpstrj` files are byte-identical, but that identity
 is the result being demonstrated, so each run keeps its own copy. `graph.pb` is not
 copied in here (9.7 MB); it is the one already in the repository, named above.
 
 ## Checking
 
-```
+```bash
 python3 compare_regression.py            # every version; exit 0 iff all match
 python3 compare_regression.py v3.1.3     # one version
 ```
@@ -107,13 +107,13 @@ Confidence checks that back the result:
   name their own plugin directory — nothing accidentally compared `ref` against `ref`.
 - All 60 runs completed the full 100 steps with a clean exit.
 
-## What this does *not* cover
+## What this does _not_ cover
 
 - **`minimize`.** The case only issues `run`. Patch p1 changes the minimize path on
   purpose: before it, `min_setup()` → `setup()` → `post_force()` never reached
   `setup_pre_force()`, so minimize placed no centroids at all, and
   `Modify::setup_post_neighbor()` dispatches on `MIN_POST_NEIGHBOR` (not
-  `POST_NEIGHBOR`) when `whichflag == 2`. Equality is the *wrong* expectation there.
+  `POST_NEIGHBOR`) when `whichflag == 2`. Equality is the _wrong_ expectation there.
 - **`fix electrode/conp`.** p1 exists so that a fix defined after `fix dplr` sees
   placed centroids in its own `setup_post_neighbor()`. No such fix is present here,
   so this shows p1 is harmless — not that it fixes what it claims to.

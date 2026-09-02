@@ -1,7 +1,7 @@
 # deepmd-kit patches for `fix dplr`
 
 Patches against deepmd-kit's `source/lmp/fix_dplr.cpp`, to be applied to the
-deepmd-kit source tree *before* deepmd-kit is compiled.
+deepmd-kit source tree _before_ deepmd-kit is compiled.
 
 They are not interchangeable and they are not both required. Start with
 `202506-fix_dplr.patch`; you only need `202404-fix_dplr_a0.patch` if you are
@@ -37,7 +37,7 @@ mask.
 
 `fix dplr` writes the Wannier-centroid coordinates into `atom->x` from
 `pre_force()`. During setup that used to happen in `setup_pre_force()`, which
-LAMMPS calls only after *every* fix has already run its `setup_post_neighbor()` —
+LAMMPS calls only after _every_ fix has already run its `setup_post_neighbor()` —
 so a fix that reads `atom->x` while setting itself up saw the centroids still
 collapsed onto their host atoms. `fix electrode/conp` builds its elastance matrix
 in exactly that hook, which is why this is the groundwork for ELECTRODE support.
