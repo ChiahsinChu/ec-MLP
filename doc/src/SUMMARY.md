@@ -10,4 +10,5 @@
   - [(TF) `dipole_charge_electrode` modifier for polarizable electrode](./tf/modifier/dipole_charge_electrode.md)
 
 - [LAMMPS interface]()
+  - [deepmd-kit patches for `fix dplr`](./lmp/dp_patch.md)
   - [`verlet/split/dplr` for MD acceleration](./lmp/verlet_split_mlp.md)

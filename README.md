@@ -25,16 +25,22 @@ python -m pytest tests
 
 ### Lammps interface
 
-For a LAMMPS interface, a patch should be applied to the source code of deepmd-kit:
+For a LAMMPS interface, the two `fix dplr` patches shipped in
+[`dp-patch/`](./dp-patch/) must be applied to the source code of deepmd-kit before
+it is built:
 
 ```bash
 # get deepmd-kit source code
-git clone -b v3.1.1 https://github.com/deepmodeling/deepmd-kit.git
-# add patch for fix dplr
-wget -c https://patch-diff.githubusercontent.com/raw/ChiahsinChu/deepmd-kit/pull/1.patch
-git am -3 1.patch
+git clone -b v3.1.3 https://github.com/deepmodeling/deepmd-kit.git
+cd deepmd-kit
+# add patches for fix dplr
+git am -3 /path/to/ec-MLP/dp-patch/*.patch
 # install deepmd-kit from src...
 ```
+
+One of the two makes `FixDPLR::dfele` public, which `src/lmp/verlet_split_dplr.cpp`
+writes to — the plugin does not compile without it. See
+[`dp-patch/README.md`](./dp-patch/README.md) for what each patch does.
 
 After installing deepmd-kit (dp-lmp interface), the plugin can be installed by:
 
@@ -61,6 +67,11 @@ bash run_all_tests.sh
 ## Version compatibility
 
 This plugin is compatible with [DeepMD-kit v3.1.1](https://github.com/deepmodeling/deepmd-kit/releases/tag/v3.1.1) and [Lammps Stable release 22 July 2025](https://github.com/lammps/lammps/releases/tag/stable_22Jul2025). Older versions of both softwares do not work.
+
+The `dp-patch/` patches themselves apply cleanly to DeepMD-kit v3.0.0 through
+v3.2.0 and are verified behaviour-preserving on all of them; see
+[`dp-patch/regression/`](./dp-patch/regression/). That record covers the patches
+only — it says nothing about this plugin on those versions.
 
 ## Documentation
 
