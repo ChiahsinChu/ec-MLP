@@ -46,6 +46,11 @@ system.data  md5 a9ea654cd944afd98f5d58909a3713cc
 input.lmp    md5 797c06eeaff2817c06dbb95153276492
 ```
 
+`graph.pb` is the model already in this repository, at
+[`tests/lmp/verlet_split_dplr/bulk_water/graph.pb`](../../tests/lmp/verlet_split_dplr/bulk_water/graph.pb)
+— the md5 above is that file's. It is stored with git-lfs, so `git lfs pull` is
+needed before the bytes (rather than a pointer file) are on disk.
+
 ## Layout
 
 ```
@@ -63,7 +68,7 @@ files are stored once under `case/` instead of in every leaf; their md5s are the
 ones listed above and are pinned in `compare_regression.py`. The outputs are *not*
 deduplicated — the 24 `dump.lammpstrj` files are byte-identical, but that identity
 is the result being demonstrated, so each run keeps its own copy. `graph.pb` is not
-included (8 MB); its checksum is above.
+copied in here (9.7 MB); it is the one already in the repository, named above.
 
 ## Checking
 
