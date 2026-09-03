@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Repository conventions
+
+- Added `AGENTS.md` at the repository root: the rules every automated change
+  follows — never commit on `master` but on a master-derived branch, run
+  `pre-commit run --all-files` before each commit, update `doc/CHANGELOG.md`
+  and the docs in the same commit (except `WIP:` commits), and rebuild the
+  book with `mdbook build` when `doc/src/` changed, or say that it was not
+  rebuilt, and squash a merged pull request into a single commit on the target
+  branch. Also records the smaller expectations: no `--no-verify`, no force-push
+  of published history, run `pytest` when Python changed, never hand-edit
+  generated or vendored files, and report any rule that was skipped.
+- Added `CLAUDE.md`, a one-line pointer to `AGENTS.md`, so Claude Code picks
+  up the same rules.
+
 ### deepmd-kit patches
 
 - Vendored the two `fix dplr` patches into `dp-patch/`, replacing the `wget` of a
