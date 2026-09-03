@@ -27,9 +27,19 @@ unchanged.
 
 - **p1** `202404-fix_dplr_a0.patch` — moves setup-time Wannier-centroid placement
   from `setup_pre_force()` to the end of `setup_post_neighbor()`, and adds
-  `MIN_POST_NEIGHBOR` to the fix mask.
+  `MIN_POST_NEIGHBOR` to the fix mask. Vendored at
+  [`src/lmp/legacy-ecmlp/patch/`](../../src/lmp/legacy-ecmlp/patch), the
+  constant-potential plugin.
 - **p2** `202506-fix_dplr.patch` — promotes `dfele` to a public `FixDPLR` member,
-  re-zeroed at the end of `pre_force()`.
+  re-zeroed at the end of `pre_force()`. Vendored at
+  [`src/lmp/verlet-split-dplr/patch/`](../../src/lmp/verlet-split-dplr/patch), the
+  `verlet/split` plugin.
+
+The two belong to different plugins and different workflows; this record exists
+because they are the two patches that touch `fix dplr` alone, so a plain `run` is
+the right thing to hold fixed. The `202404-fix_dplr-lammps-*` series that ships
+alongside p1 is **not** covered here — it adds new files and build wiring, and is
+pinned to a LAMMPS release rather than a deepmd-kit range.
 
 `test/` has **both** applied. They were also verified individually; each alone
 matched `ref` on every version too.
@@ -47,7 +57,7 @@ input.lmp    md5 797c06eeaff2817c06dbb95153276492
 ```
 
 `graph.pb` is the model already in this repository, at
-[`tests/lmp/verlet_split_dplr/bulk_water/graph.pb`](../../tests/lmp/verlet_split_dplr/bulk_water/graph.pb)
+[`tests/lmp/verlet_split_dplr/bulk_water/graph.pb`](../lmp/verlet_split_dplr/bulk_water/graph.pb)
 — the md5 above is that file's. It is stored with git-lfs, so `git lfs pull` is
 needed before the bytes (rather than a pointer file) are on disk.
 

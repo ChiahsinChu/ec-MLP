@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-690400d6.js";
+            window.path_to_searchindex_js = "searchindex-794d1a0b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c78f929c.js"></script>
+        <script src="toc-b68a1863.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -201,45 +201,98 @@
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="deepmd-kit-patches-for-fix-dplr"><a class="header" href="#deepmd-kit-patches-for-fix-dplr">deepmd-kit patches for <code>fix dplr</code></a></h1>
 <h2 id="introduction"><a class="header" href="#introduction">Introduction</a></h2>
-<p>ec-MLP’s LAMMPS plugin needs changes to deepmd-kit’s <code>fix dplr</code> that are not
-upstream. They live in
-<a href="https://github.com/chenggroup/ec-MLP/tree/master/dp-patch"><code>dp-patch/</code></a> and apply
-to <code>source/lmp/fix_dplr.cpp</code> in the deepmd-kit source tree, before deepmd-kit is
-compiled.</p>
-<p>There are two, and they serve different purposes:</p>
+<p>ec-MLP’s two LAMMPS plugins need changes to deepmd-kit’s <code>fix dplr</code> that are not
+upstream. Each plugin ships the patch its own workflow needs, in its own <code>patch/</code>
+folder, to be applied to the deepmd-kit source tree before deepmd-kit is compiled.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>patch</th><th>when you need it</th></tr>
+<tr><th>patch</th><th>shipped by</th><th>when you need it</th></tr>
 </thead>
 <tbody>
-<tr><td><code>202506-fix_dplr.patch</code></td><td><strong>Mandatory</strong> for <code>verlet/split</code> with the official DPLR</td></tr>
-<tr><td><code>202404-fix_dplr_a0.patch</code></td><td>Testing only for now; base of the ELECTRODE support still to come</td></tr>
+<tr><td><code>202506-fix_dplr.patch</code></td><td><a href="https://github.com/chenggroup/ec-MLP/tree/master/src/lmp/verlet-split-dplr"><code>src/lmp/verlet-split-dplr</code></a></td><td><code>run_style verlet/split/dplr</code></td></tr>
+<tr><td><code>202404-fix_dplr-lammps-22Jul2025.patch</code></td><td><a href="https://github.com/chenggroup/ec-MLP/tree/master/src/lmp/legacy-ecmlp"><code>src/lmp/legacy-ecmlp</code></a></td><td>constant-potential workflow, LAMMPS stable 22 Jul 2025</td></tr>
+<tr><td><code>202404-fix_dplr-lammps-29Aug2024.patch</code></td><td>same</td><td>same, LAMMPS stable 29 Aug 2024</td></tr>
+<tr><td><code>202404-fix_dplr_a0.patch</code></td><td>same</td><td>reference / testing only</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="202506-fix_dplrpatch--mandatory"><a class="header" href="#202506-fix_dplrpatch--mandatory"><code>202506-fix_dplr.patch</code> — mandatory</a></h2>
-<p>If you want to use <code>verlet/split</code> with the official DPLR — that is, without
-ELECTRODE, which is not supported yet — <strong>this patch is mandatory, and it is the
-only one you need.</strong></p>
+<p>These are <strong>two parallel branches from one base, not a stack.</strong> Every patch here is
+generated against <code>ac161730</code>, which is deepmd-kit <strong>v3.0.0</strong>’s
+<code>source/lmp/fix_dplr.cpp</code>. From that base <code>202506-fix_dplr.patch</code> produces
+<code>00758471</code>, while <code>202404-fix_dplr_a0.patch</code> produces <code>a2d54736</code> and the
+<code>202404-fix_dplr-lammps-*</code> series continues from there. Neither line contains the
+other, and neither workflow needs both.</p>
+<h2 id="202506-fix_dplrpatch--for-verletsplitdplr"><a class="header" href="#202506-fix_dplrpatch--for-verletsplitdplr"><code>202506-fix_dplr.patch</code> — for <code>verlet/split/dplr</code></a></h2>
 <p>It promotes <code>dfele</code> from a local of <code>FixDPLR::post_force()</code> to a public member,
 re-zeroed at the end of <code>pre_force()</code>.</p>
 <p>This is a build requirement, not a behavioural tweak. <code>verlet/split/dplr</code> runs the
 k-space part of the force on a separate partition and has to hand the result back
-to <code>fix dplr</code>; <code>src/lmp/verlet_split_dplr.cpp</code> does that by writing
-<code>fix_dplr-&gt;dfele[...]</code> directly. Against an unpatched deepmd-kit the member is
-private and the plugin does not compile.</p>
+to <code>fix dplr</code>; <code>verlet_split_dplr.cpp</code> does that by writing <code>fix_dplr-&gt;dfele[...]</code>
+directly. Against an unpatched deepmd-kit the member is private and the plugin does
+not compile.</p>
 <pre><code class="language-bash"># get deepmd-kit source code
-git clone -b v3.1.3 https://github.com/deepmodeling/deepmd-kit.git
+git clone -b v3.1.1 https://github.com/deepmodeling/deepmd-kit.git
 cd deepmd-kit
-# apply the mandatory patch
-git am -3 /path/to/ec-MLP/dp-patch/202506-fix_dplr.patch
+git am -3 /path/to/ec-MLP/src/lmp/verlet-split-dplr/patch/202506-fix_dplr.patch
 # then build deepmd-kit as usual
 </code></pre>
-<h2 id="202404-fix_dplr_a0patch--testing-only-for-now"><a class="header" href="#202404-fix_dplr_a0patch--testing-only-for-now"><code>202404-fix_dplr_a0.patch</code> — testing only, for now</a></h2>
-<p>This patch is <strong>not needed for the <code>verlet/split</code> path above</strong>. It is here for
-testing: it is the base of the ELECTRODE-support work, and the patches derived
-from it that actually add that support will be added to <code>dp-patch/</code> later.</p>
+<p>Applies cleanly to v3.0.0 through v3.2.0.</p>
+<h2 id="202404-fix_dplr-lammps-releasepatch--for-the-constant-potential-workflow"><a class="header" href="#202404-fix_dplr-lammps-releasepatch--for-the-constant-potential-workflow"><code>202404-fix_dplr-lammps-&lt;release&gt;.patch</code> — for the constant-potential workflow</a></h2>
+<p><strong>Apply this if you want <code>kspace_style pppm/electrode/dplr</code>.</strong> Three commits:</p>
+<ol>
+<li>the <code>202404-fix_dplr_a0.patch</code> commit described below, verbatim;</li>
+<li><code>feat(lmp): add kspace style pppm/electrode/dplr</code> — the new kspace style, its
+registration in <code>deepmdplugin.cpp</code>, the <code>ELECTRODE</code> build wiring in
+<code>builtin.cmake</code> / <code>plugin/CMakeLists.txt</code> / <code>Install.sh</code>, and the
+<code>FixDPLR::post_force()</code> hunk that collects <code>get_fele()</code> from it the same way the
+existing hunk collects from <code>pppm/dplr</code>;</li>
+<li>a release pin recording which LAMMPS stable release the copied
+<code>PPPMElectrode::compute()</code> was checked against.</li>
+</ol>
+<p>Only the third commit differs between the two files, so pick the one matching your
+LAMMPS.</p>
+<pre><code class="language-bash">cd deepmd-kit
+git am -3 --empty=keep \
+  /path/to/ec-MLP/src/lmp/legacy-ecmlp/patch/202404-fix_dplr-lammps-22Jul2025.patch
+</code></pre>
+<p><code>--empty=keep</code> is required. The third commit is a release pin with no file changes,
+and plain <code>git am</code> stops on an empty patch.</p>
+<p><code>ELECTRODE</code> becomes a build dependency of deepmd-kit’s LAMMPS interface on this
+branch, and since <code>ELECTRODE</code> supports only the CMake build upstream, the legacy
+<code>make</code> path is unavailable with it.</p>
+<p>The two fixes that go with this kspace style ship separately, as an ec-MLP plugin —
+see <a href="#constant-potential-dplr">Constant-potential DPLR</a>.</p>
+<h3 id="version-range"><a class="header" href="#version-range">Version range</a></h3>
+<p>The series is cut from v3.0.0 and applies cleanly through <strong>v3.1.0</strong>. From
+<strong>v3.1.1</strong> on it leaves two conflicts, one hunk each in <code>source/lmp/fix_dplr.cpp</code>
+and <code>source/lmp/plugin/deepmdplugin.cpp</code>. Both are the same pointer-style context
+mismatch — the patch was authored on a tree formatted <code>Type *x</code>, those releases use
+<code>Type* x</code> — so the resolution is to take the patch side of each hunk.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>deepmd-kit</th><th><code>202506-fix_dplr.patch</code></th><th><code>202404-fix_dplr-lammps-*</code></th><th>both together</th></tr>
+</thead>
+<tbody>
+<tr><td>v3.0.0</td><td>clean</td><td>clean</td><td>clean</td></tr>
+<tr><td>v3.0.3</td><td>clean</td><td>clean</td><td>clean</td></tr>
+<tr><td>v3.1.0</td><td>clean</td><td>clean</td><td>clean</td></tr>
+<tr><td>v3.1.1</td><td>clean</td><td>2 hunks</td><td>2 hunks</td></tr>
+<tr><td>v3.1.2</td><td>clean</td><td>2 hunks</td><td>2 hunks</td></tr>
+<tr><td>v3.1.3</td><td>clean</td><td>2 hunks</td><td>2 hunks</td></tr>
+<tr><td>v3.2.0</td><td>clean</td><td>2 hunks</td><td>2 hunks</td></tr>
+</tbody>
+</table>
+</div>
+<p>Where both apply, they compose: the two lines touch adjacent but distinct lines of
+<code>post_force()</code>, and <code>git am -3</code> merges them in either order.</p>
+<h2 id="202404-fix_dplr_a0patch--the-electrode-groundwork-on-its-own"><a class="header" href="#202404-fix_dplr_a0patch--the-electrode-groundwork-on-its-own"><code>202404-fix_dplr_a0.patch</code> — the ELECTRODE groundwork, on its own</a></h2>
+<p>This patch is <strong>not needed for the <code>verlet/split</code> path</strong>, and not needed for the
+constant-potential workflow either: the series above already contains it as its
+first commit. It is kept separately as the ELECTRODE-free reference, because it
+changes <code>fix dplr</code> and nothing else — which is what the regression record below
+covers.</p>
 <p>It moves the setup-time Wannier-centroid placement out of <code>setup_pre_force()</code> and
 to the end of <code>setup_post_neighbor()</code>, and adds <code>MIN_POST_NEIGHBOR</code> to the fix
 mask.</p>
@@ -249,7 +302,7 @@ LAMMPS calls only after <em>every</em> fix has already run its <code>setup_post_
 Any fix that reads <code>atom-&gt;x</code> while setting itself up therefore saw the centroids
 still collapsed onto their host atoms — <code>fix electrode/conp</code> builds its elastance
 matrix in exactly that hook, so a constant-potential run started from the wrong
-geometry. That is what the derived patches will build on.</p>
+geometry.</p>
 <p><code>setup_post_neighbor()</code> already existed in <code>fix dplr</code> for restart support: it
 collapses each centroid onto its host, re-migrates and rebuilds the neighbor lists.
 The placement is appended to the end of that same hook, which is also the earliest
@@ -266,17 +319,17 @@ positions</strong>, because LAMMPS runs fixes in definition order.</li>
 alone left <code>minimize</code> with no centroid placement at all — and, already before this
 patch, with no restart collapse either. Setting both bits repairs that path.</li>
 </ul>
-<p>To exercise it, apply it on top of the mandatory patch:</p>
-<pre><code class="language-bash">git am -3 /path/to/ec-MLP/dp-patch/202404-fix_dplr_a0.patch
+<p>To exercise it on its own:</p>
+<pre><code class="language-bash">git am -3 /path/to/ec-MLP/src/lmp/legacy-ecmlp/patch/202404-fix_dplr_a0.patch
 </code></pre>
-<p>The two patches touch disjoint parts of <code>fix_dplr.cpp</code>, so the order does not
-matter. Use <code>git apply --3way</code> instead of <code>git am -3</code> to apply them without
-creating commits.</p>
 <h2 id="regression-status"><a class="header" href="#regression-status">Regression status</a></h2>
-<p>Both patches apply cleanly to deepmd-kit v3.0.0 through v3.2.0 and leave a plain
-<code>run</code> bit-for-bit unchanged on every one of them — each patch on its own, and both
-together. The case is 512 waters (2048 atoms, 512 O–X bonds) under <code>pair_style deepmd</code> + <code>kspace_style pppm/dplr</code> + <code>fix dplr</code>, 100 NVT steps at 300 K, compared
-unpatched (<code>ref</code>) against patched (<code>test</code>) at 1 and 4 MPI ranks:</p>
+<p><code>202506-fix_dplr.patch</code> and <code>202404-fix_dplr_a0.patch</code> apply cleanly to deepmd-kit
+v3.0.0 through v3.2.0 and leave a plain <code>run</code> bit-for-bit unchanged on every one of
+them — each patch on its own, and both together. That range describes the patches;
+the plugins themselves are supported on v3.1.1. The case is 512 waters (2048 atoms,
+512 O–X bonds) under <code>pair_style deepmd</code> + <code>kspace_style pppm/dplr</code> + <code>fix dplr</code>,
+100 NVT steps at 300 K, compared unpatched (<code>ref</code>) against patched (<code>test</code>) at 1 and
+4 MPI ranks:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -292,15 +345,17 @@ unpatched (<code>ref</code>) against patched (<code>test</code>) at 1 and 4 MPI 
 </tbody>
 </table>
 </div>
-<p>The trajectories and thermo logs are in <code>dp-patch/regression/</code>, checked by</p>
-<pre><code class="language-bash">cd dp-patch/regression
+<p>The trajectories and thermo logs are in <code>tests/dp-patch-regression/</code>, checked by</p>
+<pre><code class="language-bash">cd tests/dp-patch-regression
 python3 compare_regression.py
 </code></pre>
 <p>Note what this does <strong>not</strong> show. It covers <code>run</code> only, so it says nothing about
 the <code>minimize</code> path, where <code>202404-fix_dplr_a0.patch</code> changes behaviour on purpose.
 And no <code>fix electrode/conp</code> is present in the case, so it shows that patch is
-harmless — not that it does what the ELECTRODE work will need it to. The full list
-of caveats is in <code>dp-patch/regression/README.md</code>.</p>
+harmless — not that it does what the ELECTRODE work needs it to. The
+<code>202404-fix_dplr-lammps-*</code> series is outside this record altogether; it is pinned
+to a LAMMPS release instead. The full list of caveats is in
+<code>tests/dp-patch-regression/README.md</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="verletsplit-for-mlp"><a class="header" href="#verletsplit-for-mlp"><code>verlet/split</code> for MLP</a></h1>
 <h2 id="introduction-1"><a class="header" href="#introduction-1">Introduction</a></h2>
@@ -332,6 +387,137 @@ mpirun -np 5 -p 1 4 lmp_mpi -i input.lmp
 <li>Red color indicates new functions in verlet/split/dplr.</li>
 <li>Blue color highlights GPU-intensive processes and loop flow.</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="constant-potential-dplr"><a class="header" href="#constant-potential-dplr">Constant-potential DPLR</a></h1>
+<h2 id="introduction-2"><a class="header" href="#introduction-2">Introduction</a></h2>
+<p>These three styles extend DPLR from “long-range polarization under a uniform
+external E-field” to <strong>constant-potential electrochemistry</strong>, by wiring DPLR into
+the LAMMPS <code>ELECTRODE</code> package.</p>
+<p>The problem they solve is force routing. Part of the charge in a DPLR system sits
+on massless Wannier centroids. Any electrostatic force written straight into
+<code>atom-&gt;f</code> for those sites is lost, because a centroid has no dynamics of its own —
+the force has to be back-propagated onto the host atom by the
+<code>DipoleChargeModifier</code>. Stock <code>pppm/electrode</code> and <code>fix electrode/conp</code> both write
+directly into <code>atom-&gt;f</code>, so they need DPLR-aware variants.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Style</th><th>Role</th><th>Ships in</th></tr>
+</thead>
+<tbody>
+<tr><td><code>kspace_style pppm/electrode/dplr</code></td><td>constant-potential PPPM; hands its k-space force to <code>fix dplr</code></td><td>deepmd-kit, via the patch below</td></tr>
+<tr><td><code>fix electrode/conp/dplr</code></td><td>constant-<strong>potential</strong> charge solver, field and gausscorr force left to DPLR</td><td>ec-MLP, <code>src/lmp/legacy-ecmlp</code></td></tr>
+<tr><td><code>fix electrode/conq/dplr</code></td><td>constant-<strong>charge</strong> variant of the same</td><td>ec-MLP, <code>src/lmp/legacy-ecmlp</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The split follows the coupling. <code>pppm/electrode/dplr</code> has to live in deepmd-kit
+because <code>FixDPLR::post_force()</code> names its type to call <code>get_fele()</code>. The two fixes
+have no deepmd dependency at all — they touch only <code>atom</code> and <code>modify</code> — so they
+ship as a second ec-MLP plugin, built from
+<a href="https://github.com/chenggroup/ec-MLP/tree/master/src/lmp/legacy-ecmlp"><code>src/lmp/legacy-ecmlp/</code></a>,
+separate from the <code>verlet/split</code> plugin in <code>src/lmp/verlet-split-dplr</code>.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<p>Build deepmd-kit with the patch series that adds <code>pppm/electrode/dplr</code>, picking
+the file that matches your LAMMPS release:</p>
+<pre><code class="language-bash">git clone -b v3.1.0 https://github.com/deepmodeling/deepmd-kit.git
+cd deepmd-kit
+git am -3 --empty=keep \
+  /path/to/ec-MLP/src/lmp/legacy-ecmlp/patch/202404-fix_dplr-lammps-22Jul2025.patch
+# then build deepmd-kit as usual
+</code></pre>
+<p><code>--empty=keep</code> is required — the series’ third commit is a release pin with no file
+changes. The series supersedes <code>202404-fix_dplr_a0.patch</code>, whose single commit it
+already contains, and it does <strong>not</strong> need <code>202506-fix_dplr.patch</code>: that one exists
+only for <code>verlet/split/dplr</code>, which cannot be used with <code>pppm/electrode/dplr</code>
+anyway. See <a href="#deepmd-kit-patches-for-fix-dplr">deepmd-kit patches for <code>fix dplr</code></a>, which also lists
+which deepmd-kit releases the series applies to cleanly.</p>
+<p>LAMMPS must be built with the <code>PLUGIN</code>, <code>KSPACE</code> and <code>ELECTRODE</code> packages. Then
+build the fixes:</p>
+<pre><code class="language-bash">cd ec-MLP/src/lmp/legacy-ecmlp
+mkdir -p build &amp;&amp; cd build
+# $LAMMPS_PREFIX: the path of lammps code (including src, cmake, lib, etc.)
+cmake -DLAMMPS_SOURCE_DIR=$LAMMPS_PREFIX/src ..
+make
+</code></pre>
+<p>This produces <code>ecmlplegacyplugin.so</code>; put its directory on <code>LAMMPS_PLUGIN_PATH</code>
+alongside the deepmd-kit plugin. Unlike <code>src/lmp/verlet-split-dplr</code>, <code>ELECTRODE</code>
+is a hard requirement here — configuring without it is a fatal error, not a silent opt-out —
+and so is LAMMPS stable 22 Jul 2025 or newer.</p>
+<h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
+<pre><code class="language-bash"># ELECTRODE-aware PPPM that routes its force through DPLR
+kspace_style    pppm/electrode/dplr 1e-5
+kspace_modify   gewald ${BETA} diff ik mesh ${KMESH_X} ${KMESH_Y} ${KMESH_Z}
+
+fix             fdplr all dplr model graph.pb \
+                type_associate 1 6 3 7 4 8 bond_type 1
+fix             fconp slab electrode/conp/dplr ${PSI} pair lj/cut/coul/long/gauss
+</code></pre>
+<p>The constant-potential workflow runs on a <strong>single partition</strong>;
+<code>run_style verlet/split/dplr</code> is incompatible with <code>pppm/electrode/dplr</code> and says
+so.</p>
+<pre><code class="language-bash">mpirun -np 4 lmp_mpi -i input.lmp
+</code></pre>
+<p><code>fix dplr</code> must be defined <strong>before</strong> the electrode fix. LAMMPS runs fixes in
+definition order, and <code>fix electrode/conp</code> builds its elastance matrix in
+<code>setup_post_neighbor()</code> — it has to see the Wannier centroids already placed,
+which is what the <code>202404</code> patch arranges.</p>
+<h3 id="fix-electrodeconpdplr"><a class="header" href="#fix-electrodeconpdplr"><code>fix electrode/conp/dplr</code></a></h3>
+<p>Same syntax as <code>fix electrode/conp</code>. Two behavioural differences:</p>
+<ul>
+<li>
+<p>With <code>ffield yes</code> it does <strong>not</strong> create the internal <code>fix efield</code> that
+<code>fix electrode/conp</code> adds. The variables <code>&lt;fixname&gt;_ffield_vtop</code>,
+<code>_ffield_vbot</code> and <code>_ffield_zfield</code> are still defined, so the field can be
+applied through DPLR instead — which is what routes it onto the centroids:</p>
+<pre><code class="language-bash">fix  fdplr all dplr model graph.pb ... efield 0 0 v_fconp_ffield_zfield
+</code></pre>
+</li>
+<li>
+<p>The Gaussian charge correction contributes energy and virial but <strong>no force</strong>,
+for the force-routing reason above.</p>
+</li>
+</ul>
+<h3 id="fix-electrodeconqdplr"><a class="header" href="#fix-electrodeconqdplr"><code>fix electrode/conq/dplr</code></a></h3>
+<p>Same syntax as <code>fix electrode/conq</code>: the per-group numbers are target <strong>charges</strong>
+rather than potentials. It inherits both deviations above from
+<code>fix electrode/conp/dplr</code>, by construction — it is derived from it rather than
+from <code>fix electrode/conq</code>, so that any future change to the DPLR force routing
+reaches both fixes at once.</p>
+<pre><code class="language-bash">fix  fconq slab electrode/conq/dplr ${QTARGET} pair lj/cut/coul/long/gauss
+</code></pre>
+<p>The <code>qtotal</code> keyword is rejected, as it is for <code>fix electrode/conq</code>.</p>
+<h3 id="kspace_style-pppmelectrodedplr"><a class="header" href="#kspace_style-pppmelectrodedplr"><code>kspace_style pppm/electrode/dplr</code></a></h3>
+<p>Same syntax as <code>pppm/electrode</code>. Requires <code>newton on</code>. As with <code>pppm/dplr</code>, the
+Ewald self-energy is not subtracted from the reported <code>elong</code>, so that the energy
+keeps the convention the DPLR model was trained with.</p>
+<h2 id="implementation-notes"><a class="header" href="#implementation-notes">Implementation notes</a></h2>
+<p>Both fixes use only public and protected LAMMPS API.
+<code>FixElectrodeConp::gausscorr()</code> is private, so rather than calling it with
+<code>fflag=false</code> the DPLR variant lets the base class run and then restores
+<code>atom-&gt;f</code>. That is exactly equivalent: within <code>pre_reverse()</code> /
+<code>setup_pre_reverse()</code> the base class calls only <code>ev_init()</code>, <code>gausscorr()</code> and
+<code>self_energy()</code>, and of those only <code>gausscorr()</code>, and only under its <code>if (fflag)</code>
+branch, ever touches <code>atom-&gt;f</code>.</p>
+<p><code>fix electrode/conq/dplr</code> carries a verbatim copy of the five members of
+<code>fix_electrode_conq.cpp</code>, re-parented onto <code>FixElectrodeConpDPLR</code>. Every member
+they reach is protected in <code>FixElectrodeConp</code>, so the copy compiles unchanged in a
+grandchild. It must be re-synced when upstream LAMMPS changes that file. One line
+is added rather than copied: <code>FixElectrodeConp</code> rejects the <code>qtotal</code> keyword by
+comparing the style string against <code>"electrode/conq"</code> exactly, which
+<code>"electrode/conq/dplr"</code> does not match, so the guard is re-armed in the
+constructor.</p>
+<h2 id="status"><a class="header" href="#status">Status</a></h2>
+<p><code>fix electrode/conq/dplr</code> has been checked against stock <code>fix electrode/conq</code> on
+<code>lammps/examples/PACKAGES/electrode/graph-il/in.conq</code> at step 0, with <code>etypes</code> on
+and off: the electrode charges are bit-identical over all 832 electrode atoms,
+and the only difference in the forces is the discarded Gaussian correction
+(~1.4e-3 kcal/mol/Å here, and exactly zero with <code>etypes on</code>, where that
+correction vanishes for this system). The <code>qtotal</code> guard was checked to fire.</p>
+<p>Multi-rank correctness has not been verified. <code>fele</code> in <code>pppm/electrode/dplr</code> is
+indexed by local atom index over owned atoms only, which should be rank-safe, but
+this has not been tested — compare a serial run against a parallel one before
+trusting production results.</p>
 
                     </main>
 

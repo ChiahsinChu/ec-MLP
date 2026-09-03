@@ -12,3 +12,4 @@
 - [LAMMPS interface]()
   - [deepmd-kit patches for `fix dplr`](./lmp/dp_patch.md)
   - [`verlet/split/dplr` for MD acceleration](./lmp/verlet_split_mlp.md)
+  - [Constant-potential DPLR](./lmp/electrode_dplr.md)
