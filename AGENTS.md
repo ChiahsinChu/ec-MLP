@@ -14,7 +14,8 @@ Check before the first commit:
 git branch --show-current
 ```
 
-If that prints `master`, branch off it and continue there:
+If that prints `master` — or prints **nothing**, which means a detached HEAD and
+so no branch to commit onto at all — create a branch and continue there:
 
 ```bash
 git checkout -b <type>/<short-topic> master
@@ -29,7 +30,11 @@ pre-commit run --all-files
 ```
 
 `--all-files` (short form `-a`) is the flag; `-all` is not valid. Fix whatever
-the hooks report, then re-run until clean, and only then commit.
+the hooks report and re-run until the run is clean, with the single exception
+noted below. The evidence required before committing is a
+`pre-commit run --all-files` whose only remaining failures are that exception,
+and a `git status` showing no file the hooks touched that you did not intend to
+change.
 
 `pre-commit` is not part of the default environment on JURECA. Install it once
 if the command is missing:
@@ -41,17 +46,24 @@ pipx install pre-commit  # or: pip install --user pre-commit
 If it cannot be installed or run at all, say so plainly in the report of the
 change — do not claim the tree was formatted.
 
-Known quirk: `isort` and `ruff-format` disagree over the imports of
+The exception: `isort` and `ruff-format` disagree over the imports of
 `src/ec_mlp/tf/modifier/dipole_charge_electrode.py` and
 `tests/tf/test_data_modifier.py`, so both hooks report `Failed` on a full run
-while the two rewrites cancel and the working tree ends up unchanged. Confirm
-with `git status` and move on; do not chase it in an unrelated commit.
+while the two rewrites cancel and the working tree ends up unchanged. These two
+hooks, on those two files only, may stay red: confirm with `git status` that the
+tree is unchanged, say so in the report, and do not chase it in an unrelated
+commit. Every other failure is fixed before the commit.
 
 The `exclude:` pattern in `.pre-commit-config.yaml` is deliberate: it keeps the
 hooks away from `doc/`, from the byte-exact regression reference output, and
 from the vendored deepmd-kit `.patch` files, which a reformatting hook would
 silently invalidate (`git am` would then fail). Do not widen the hook coverage
 to those paths, and do not bypass the hooks with `git commit --no-verify`.
+
+One consequence worth stating: because the whole of `doc/` is excluded, nothing
+in `doc/src/`, `doc/CHANGELOG.md` or the built book is formatted or checked by
+the hooks. A clean `pre-commit` run says nothing about them — match the style of
+the surrounding prose by hand.
 
 ## 3. Update the docs and the CHANGELOG before every commit
 
@@ -117,9 +129,11 @@ Write the squashed subject in the repository's convention:
 ## Commit checklist
 
 ```bash
-git branch --show-current      # 1. not master
+git branch --show-current      # 1. not master, not empty
 pre-commit run --all-files     # 2. formatting clean
-                               # 3. doc/CHANGELOG.md + doc/src/ + README.md updated
+                               # 3. doc/CHANGELOG.md updated; doc/src/ and
+                               #    README.md too if the change touches them
+                               #    (none of it for a `WIP:` commit)
 cd doc && mdbook build && cd ..  # 4. only if doc/src/ changed
 git commit
 # 5. squash to a single commit when the branch is merged
