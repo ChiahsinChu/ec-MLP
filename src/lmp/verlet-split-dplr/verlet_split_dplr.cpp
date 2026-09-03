@@ -146,6 +146,7 @@ void VerletSplitDPLR::setup(int flag)
     FixDPLR *fix_dplr = (FixDPLR *)fix_dplr_list[0];
 
     if(force->kspace_match("pppm/dplr", 1) != nullptr) error->all(FLERR, "KSpace style pppm/dplr is not compatible with verlet/split/dplr. Use a compatible KSpace style instead (e.g., pppm)");
+    if(force->kspace_match("pppm/electrode/dplr", 1) != nullptr) error->all(FLERR, "KSpace style pppm/electrode/dplr is not compatible with verlet/split/dplr. The constant-potential workflow runs on a single partition.");
 
     for (int i = 0; i < nlocal; i++) {
       fix_dplr->dfele[i * 3 + 0] = atom->f[i][0] - tmp_f[i * 3 + 0];

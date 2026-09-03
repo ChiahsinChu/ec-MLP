@@ -1,8 +1,9 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-# dp-patch/regression holds byte-exact reference output and the patch files
-# themselves; a hook that rewrote either would silently invalidate the record.
-exclude: '^doc/|^deprecated/|^dp-patch/regression/(v3\.|case/)|^dp-patch/.*\.patch$|.*\.log$|log\.|screen.*|.*\.out$'
+# tests/dp-patch-regression holds byte-exact reference output, and each plugin's
+# patch/ folder holds the vendored deepmd-kit patches; a hook that rewrote either
+# would silently invalidate the record or break `git am`.
+exclude: '^doc/|^deprecated/|^tests/dp-patch-regression/(v3\.|case/)|^src/lmp/[^/]+/patch/|.*\.log$|log\.|screen.*|.*\.out$'
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

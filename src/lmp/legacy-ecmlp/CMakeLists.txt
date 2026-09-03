@@ -1,6 +1,11 @@
 # ##############################################################################
-# CMake build system for plugin examples. The is meant to be used as a template
-# for plugins that are distributed independent from the LAMMPS package.
+# CMake build system for the constant-potential DPLR fixes.
+#
+# This builds a standalone LAMMPS plugin, separate from the sibling one in
+# ../verlet-split-dplr. It has no deepmd-kit dependency: fix electrode/conp/dplr
+# and fix electrode/conq/dplr derive from the LAMMPS ELECTRODE package and touch
+# nothing else. The kspace style they run with, pppm/electrode/dplr, is added
+# to deepmd-kit itself by patch/202404-fix_dplr-lammps-*.patch.
 # ##############################################################################
 
 cmake_minimum_required(VERSION 3.10)
@@ -14,7 +19,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif()
 
 project(
-  plugins
+  ecmlp_legacy_plugin
   VERSION 1.0
   LANGUAGES CXX)
 
@@ -64,7 +69,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -restrict")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+# LAMMPSInterfaceCXX.cmake is shared with the sibling plugin, one level up.
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 include(CheckIncludeFileCXX)
 if(NOT LAMMPS_DIR)
   include(LAMMPSInterfaceCXX)
@@ -81,12 +87,43 @@ message(STATUS "Original LAMMPS_VERSION_NUMBER: ${LAMMPS_VERSION_NUMBER}")
 string(REPLACE "." "" LAMMPS_VERSION_NUMBER_FIXED ${LAMMPS_VERSION_NUMBER})
 message(STATUS "Fixed LAMMPS_VERSION_NUMBER: ${LAMMPS_VERSION_NUMBER_FIXED}")
 
-set(libname "ecmlpplugin")
+# ec-MLP supports LAMMPS stable 22 Jul 2025 and newer. Before that release
+# FixElectrodeConp::recompute_potential() took its two arguments by value rather
+# than by const reference, so the conq body copied into
+# fix_electrode_conq_dplr.cpp would not override anything and would silently
+# never be called. Fail loudly instead.
+#
+# get_lammps_version() emits "year.month.day.update" with no leading zeros in
+# recent LAMMPS and a plain YYYYMMDD in older ones. Neither the stripped string
+# nor the dotted one compares as a date, so rebuild one from the parts.
+if(LAMMPS_VERSION_NUMBER MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)")
+  math(EXPR LAMMPS_VERSION_DATE
+       "${CMAKE_MATCH_1} * 10000 + ${CMAKE_MATCH_2} * 100 + ${CMAKE_MATCH_3}")
+else()
+  set(LAMMPS_VERSION_DATE ${LAMMPS_VERSION_NUMBER})
+endif()
+if(LAMMPS_VERSION_DATE LESS 20250722)
+  message(
+    FATAL_ERROR
+      "LAMMPS ${LAMMPS_VERSION_NUMBER} is too old for these styles; the stable "
+      "22 Jul 2025 release or newer is required.")
+endif()
+
+# Both styles here derive from FixElectrodeConp, so unlike ../lmp the ELECTRODE
+# package is not optional.
+if(NOT EXISTS ${LAMMPS_SOURCE_DIR}/ELECTRODE/fix_electrode_conp.h)
+  message(
+    FATAL_ERROR
+      "The LAMMPS ELECTRODE package was not found in ${LAMMPS_SOURCE_DIR}. "
+      "fix electrode/conp/dplr and fix electrode/conq/dplr derive from it, so "
+      "LAMMPS must be built with -D PKG_ELECTRODE=yes before this plugin can "
+      "be compiled.")
+endif()
+
+set(libname "ecmlplegacyplugin")
 file(GLOB LMP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-find_package(DeePMD REQUIRED)
 add_library(${libname} MODULE ${LMP_SRC})
 target_link_libraries(${libname} PRIVATE lammps)
-target_link_libraries(${libname} PUBLIC DeePMD::deepmd_c)
 target_include_directories(
   ${libname}
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
@@ -94,8 +131,7 @@ target_include_directories(
           ${LAMMPS_SOURCE_DIR}
           ${LAMMPS_SOURCE_DIR}/PLUGIN
           ${LAMMPS_SOURCE_DIR}/KSPACE
-          ${LAMMPS_SOURCE_DIR}/ELECTRODE
-          ${DEEPMD_SOURCE_DIR})
+          ${LAMMPS_SOURCE_DIR}/ELECTRODE)
 set_target_properties(${libname} PROPERTIES PREFIX "" SUFFIX ".so")
 target_compile_definitions(
   ${libname} PRIVATE "LAMMPS_VERSION_NUMBER=${LAMMPS_VERSION_NUMBER_FIXED}")
