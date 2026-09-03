@@ -2,23 +2,46 @@
 
 ## Unreleased
 
+### LAMMPS plugins
+
+- Split `src/lmp` into two independent plugins, one folder each, since they serve
+  two workflows that cannot be used together:
+  - `src/lmp/verlet-split-dplr/` — `run_style verlet/split/dplr` and
+    `verlet/split/kspace` (`ecmlpplugin.so`), unchanged apart from its new path.
+  - `src/lmp/legacy-ecmlp/` — new. `fix electrode/conp/dplr` and
+    `fix electrode/conq/dplr` (`ecmlplegacyplugin.so`), ported from the
+    `feat/electrode-dplr-styles` branch. Derives from the LAMMPS `ELECTRODE`
+    package, links no deepmd-kit, and requires LAMMPS stable 22 Jul 2025 or newer.
+  - `LAMMPSInterfaceCXX.cmake` now sits in `src/lmp/` and is shared by both.
+- Added `fix electrode/conq/dplr`: `FixElectrodeConqDPLR : FixElectrodeConpDPLR`,
+  with the five members of LAMMPS `fix_electrode_conq.cpp` copied in, so the DPLR
+  force routing lives in one place and reaches both fixes. Re-arms the `qtotal`
+  guard, which `FixElectrodeConp` keys on the exact style string `electrode/conq`
+  and so would otherwise miss.
+- `run_style verlet/split/dplr` now rejects `kspace_style pppm/electrode/dplr`
+  explicitly instead of running with a silently wrong force decomposition.
+
 ### deepmd-kit patches
 
-- Vendored the two `fix dplr` patches into `dp-patch/`, replacing the `wget` of a
-  personal fork's pull request in the installation instructions.
-  - `202506-fix_dplr.patch` — makes `FixDPLR::dfele` public. **Mandatory** for
-    `verlet/split` with the official DPLR: `src/lmp/verlet_split_dplr.cpp` writes to
-    it, and without the patch the plugin does not compile.
-  - `202404-fix_dplr_a0.patch` — places the Wannier centroids in
-    `setup_post_neighbor()` instead of `setup_pre_force()`, so a fix defined after
-    `fix dplr` (such as `fix electrode/conp`) sees the real centroid positions while
-    it sets itself up. Also adds `MIN_POST_NEIGHBOR` to the fix mask, which
-    `minimize` needs. Not required for the `verlet/split` path — it is for testing,
-    and the patches derived from it that add ELECTRODE support will follow later.
-- Added `dp-patch/regression/`: unpatched-vs-patched trajectories and thermo logs for
-  deepmd-kit v3.0.0 - v3.2.0 at 1 and 4 MPI ranks, all matching, with
-  `compare_regression.py` to check them.
-- Documented both in `doc/src/lmp/dp_patch.md`.
+- Moved the vendored patches out of the top-level `dp-patch/` and into the plugin
+  that needs each, as `patch/` inside its folder:
+  - `src/lmp/verlet-split-dplr/patch/202506-fix_dplr.patch` — makes
+    `FixDPLR::dfele` public. **Mandatory** for `verlet/split`: the plugin writes to
+    it and without the patch does not compile. Applies cleanly to v3.0.0 – v3.2.0.
+  - `src/lmp/legacy-ecmlp/patch/202404-fix_dplr-lammps-{22Jul2025,29Aug2024}.patch`
+    — adds `kspace_style pppm/electrode/dplr` to deepmd-kit, places the Wannier
+    centroids in `setup_post_neighbor()`, and pins a LAMMPS release. Needs
+    `git am --empty=keep`; cut from v3.0.0 and clean through v3.1.0, two
+    pointer-style conflicts from v3.1.1 on.
+  - `src/lmp/legacy-ecmlp/patch/202404-fix_dplr_a0.patch` — that series' first
+    commit alone, kept as the ELECTRODE-free reference behind the regression record.
+- Corrected the installation instructions: the two patch lines are **parallel
+  branches from the same deepmd-kit v3.0.0 base**, not a stack. Each workflow needs
+  only its own; they compose where both apply.
+- Moved `dp-patch/regression/` to `tests/dp-patch-regression/` and deleted
+  `dp-patch/`.
+- Documented all of it in `doc/src/lmp/dp_patch.md` and the new
+  `doc/src/lmp/electrode_dplr.md`.
 
 ---
 
