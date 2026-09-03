@@ -4,6 +4,9 @@
 
 DeepMD-kit plugin for ElectroChemical interfaces simulations.
 
+Contributors and coding agents: the working rules for this repository (branching,
+formatting, docs and changelog) are in [AGENTS.md](./AGENTS.md).
+
 ## Installation
 
 ### Python interface (training and inference)
