@@ -466,7 +466,8 @@ void VerletSplitKSpace::run(int n)
 /* ----------------------------------------------------------------------
    setup params for Rspace <-> Kspace communication
    called initially and after every reneighbor
-   also communcicate atom charges from Rspace to KSpace since static
+   Per-step dynamic state (coordinates and charges) is synchronized by
+   r2k_comm() after PRE_FORCE.
 ------------------------------------------------------------------------- */
 
 void VerletSplitKSpace::rk_setup()
@@ -512,9 +513,10 @@ void VerletSplitKSpace::rk_setup()
     atom->nghost = 0;
   }*/
 
-  // one-time scatter of Rspace atom charges to Kspace proc
-  int n;
-  n = atom->nlocal;
+  // Initialize K-space q before its first setup/thermo evaluation.  This also
+  // provides a valid state after reneighboring; r2k_comm() refreshes it again
+  // after every subsequent PRE_FORCE charge update.
+  int n = atom->nlocal;
   MPI_Scatterv(master ? atom->q : nullptr, qsize, qdisp, MPI_DOUBLE,
               atom->q, n, MPI_DOUBLE, 0, block);
 
@@ -583,8 +585,8 @@ void VerletSplitKSpace::neigh_comm(int nflag,int n_pre_exchange,int n_pre_neighb
 }
 
 /* ----------------------------------------------------------------------
-   communicate Rspace atom coords to Kspace
-   also eflag,vflag and box bounds if needed
+   Synchronize current R-space electrostatic state to K-space.
+   Called after PRE_FORCE, so q includes charges updated by electrode fixes.
 ------------------------------------------------------------------------- */
 
 
@@ -595,6 +597,11 @@ void VerletSplitKSpace::r2k_comm()
   n = atom->nlocal;
   MPI_Scatterv(master ? atom->x[0] : nullptr, xsize, xdisp, MPI_DOUBLE,
               atom->x[0], n * 3, MPI_DOUBLE, 0, block);
+
+  // qsize/qdisp are per-K-space-partition atom counts/displacements.
+  // This q must correspond exactly to the coordinates transferred above.
+  MPI_Scatterv(master ? atom->q : nullptr, qsize, qdisp, MPI_DOUBLE,
+              atom->q, n, MPI_DOUBLE, 0, block);
 
   if (domain->box_change && !master) force->kspace->setup();
 
